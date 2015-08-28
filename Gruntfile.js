@@ -12,7 +12,7 @@ module.exports = function(grunt) {
         'grunt-contrib-cssmin',
         'grunt-contrib-concat',
         'grunt-contrib-less',
-        'grunt-contrib-coffee',
+        'grunt-compile-handlebars',
         'grunt-usemin',
         'grunt-filerev'
     ].forEach(function(task) { grunt.loadNpmTasks(task); });
@@ -38,7 +38,11 @@ module.exports = function(grunt) {
                     'dist/js/*',
                     '!dist/js/*.pkg.*.js'
                 ]
-            }
+            },
+            css: [
+                'dist/css/*.css',
+                '!dist/css/*.min.css',
+            ]
         },
 
         // copy over `src/` files to `dist/`
@@ -50,10 +54,7 @@ module.exports = function(grunt) {
                     cwd: 'src/',
                     dest: 'dist/',
                     src: [
-                        '*',
-                        'css/**',
                         'js/**',
-                        'ico/**',
                         'img/**'
                     ],
                     filter: 'isFile'
@@ -71,23 +72,22 @@ module.exports = function(grunt) {
                     {
                         expand: true,
                         cwd: 'src/less',
-                        src: ['*.less'],
-                        dest: 'src/css/',
+                        src: ['!mixins.less','*.less'],
+                        dest: 'dist/css/',
                         ext: '.css'
                     }
                 ]
             }
         },
-
-        // compile coffeescript files in `/src/coffee/` into JS files
-        coffee: {
-            glob_to_multiple: {
-                expand: true,
-                // flatten: true,
-                cwd: 'src/coffee',
-                src: ['**/*.coffee'],
-                dest: 'src/js',
-                ext: '.js'
+        
+        // compile handlebar templates into static html
+        'compile-handlebars': {
+            allStatic: {
+                files: [{
+                    src: 'src/index.handlebars',
+                    dest: 'dist/index.html'
+                }],
+                templateData: 'src/data/index.json'
             }
         },
 
@@ -105,6 +105,28 @@ module.exports = function(grunt) {
             ],
             options: {
                 dirs: ['dist/']
+            }
+        },
+        
+        // compress js
+        uglify: {
+            all: {
+                files: {
+                    'dist/js/app.min.js': [
+                        'src/js/*.js'
+                    ]
+                }
+            }
+        },
+        
+        // compress css
+        cssmin: {
+            target: {
+                files: {
+                    'dist/css/styles.min.css': [
+                        'dist/css/*.css'
+                    ]
+                }
             }
         },
 
@@ -126,7 +148,7 @@ module.exports = function(grunt) {
 
         // validate JS files using jshint (great for catching simple bugs)
         jshint: {
-            files: ['gruntfile.js', 'src/**/*.js', 'test/**/*.js'],
+            files: ['Gruntfile.js', 'src/**/*.js', 'test/**/*.js'],
             options: {
                 // options here to override JSHint defaults
                 globals: {
@@ -143,9 +165,13 @@ module.exports = function(grunt) {
 
         // watch command to auto-compile files that have changed
         watch: {
-            coffee: {
-                files: ['src/**/*.coffee'],
-                tasks: ['coffee', 'jshint']
+            scripts: {
+                files: ['Gruntfile.js','src/**/*.js'],
+                tasks: ['jshint']
+            },
+            handlebars: {
+                files: ['src/*.handlebars'],
+                tasks: ['clean','compile-handlebars','less'],
             },
             less: {
                 files: ['src/**/*.less'],
@@ -160,12 +186,12 @@ module.exports = function(grunt) {
     grunt.registerTask('test', ['jshint', 'qunit']);
 
     // like watch, but build stuff at start too!
-    grunt.registerTask('dev', ['less', 'coffee', 'watch']);
+    grunt.registerTask('dev', ['clean:dist', 'copy', 'compile-handlebars', 'less', 'watch']);
 
     // full build of project to `dist/`
-    grunt.registerTask('default', ['less', 'coffee', 'jshint', 'clean', 'copy',
+    grunt.registerTask('default', ['clean:dist', 'copy', 'compile-handlebars', 'less', 'jshint', 
                                    'useminPrepare',
-                                   'concat', 'uglify', 'cssmin',
-                                   'filerev',
-                                   'usemin']);
+                                   'cssmin',
+                                   'usemin',
+                                   'clean:css']);
 };
