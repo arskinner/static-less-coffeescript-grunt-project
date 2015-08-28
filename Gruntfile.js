@@ -14,13 +14,16 @@ module.exports = function(grunt) {
         'grunt-contrib-less',
         'grunt-compile-handlebars',
         'grunt-usemin',
-        'grunt-filerev'
+        'grunt-filerev',
+        'grunt-aws-s3',
+        'grunt-contrib-compress'
     ].forEach(function(task) { grunt.loadNpmTasks(task); });
 
 
     // setup init config
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
+        aws: grunt.file.readJSON('aws.json'),
 
         // clean up the `dist/` directory, i.e., delete files
         clean: {
@@ -140,6 +143,27 @@ module.exports = function(grunt) {
                 ]
             }
         },
+        
+        // push to s3 for preview
+        
+        aws_s3: {
+          options: {
+            accessKeyId: '<%= aws.AWSAccessKeyId %>',
+            secretAccessKey: '<%= aws.AWSSecretKey %>',
+            region: '<%= aws.AWSRegion %>',
+            uploadConcurrency: 5, // 5 simultaneous uploads
+            downloadConcurrency: 5 // 5 simultaneous downloads
+          },
+          preview: {
+            options: {
+              bucket: 'poprule',
+              differential: true // Only uploads the files that have changed
+            },
+            files: [
+              {expand: true, cwd: 'dist/', src: ['**'], dest: 'clients/economist/fujitsu_de/'}
+            ]
+          }
+        },
 
         // TODO - support qunit
         qunit: {
@@ -171,12 +195,24 @@ module.exports = function(grunt) {
             },
             handlebars: {
                 files: ['src/*.handlebars'],
-                tasks: ['clean','compile-handlebars','less'],
+                tasks: ['clean:dist','copy','compile-handlebars','less'],
             },
             less: {
                 files: ['src/**/*.less'],
                 tasks: ['less']
             }
+        },
+
+        // zip distribution folder        
+        compress: {
+          main: {
+            options: {
+              archive: 'fujitsu_de.zip'
+            },
+            files: [
+              {src: ['dist/**'], dest: '', filter: 'isFile'}
+            ]
+          }
         }
     });
 
@@ -189,9 +225,18 @@ module.exports = function(grunt) {
     grunt.registerTask('dev', ['clean:dist', 'copy', 'compile-handlebars', 'less', 'watch']);
 
     // full build of project to `dist/`
-    grunt.registerTask('default', ['clean:dist', 'copy', 'compile-handlebars', 'less', 'jshint', 
+    grunt.registerTask('default', ['clean:dist', 'copy', 'compile-handlebars', 'less', 
                                    'useminPrepare',
                                    'cssmin',
                                    'usemin',
-                                   'clean:css']);
+                                   'clean:css',
+                                   'compress']);
+    
+    // push to preview site
+    grunt.registerTask('push', ['clean:dist', 'copy', 'compile-handlebars', 'less', 
+                                   'useminPrepare',
+                                   'cssmin',
+                                   'usemin',
+                                   'clean:css',
+                                   'aws_s3:preview']);
 };
