@@ -1,9 +1,5 @@
 @import "mixins";
-
-@text-color: #333;
-@font-size: 14px;
-@line-height: 20px;
-
+@import "variables";
 
 html,body,div,p,ul,ol,li,span,h1,h2,h3,h4,h5,h6,pre,code{margin:0;padding:0}
 
@@ -13,13 +9,11 @@ html, body {
 
 body {
     padding: 0 @line-height;
-    font-weight: 200;
     font-size: @font-size;
     line-height: @line-height;
-    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-family: Helvetica,Arial,sans-serif;
     color: @text-color;
 }
-
 
 #content {
     margin: 0 auto @line-height*3;
@@ -36,17 +30,10 @@ h1 {
     margin-bottom: @line-height;
 }
 
-p,pre {
+p {
     margin-bottom: @line-height;
 }
 
-pre {
-    padding-left: @line-height;
-}
-
-a {
+a,a:hover {
     text-decoration: none;
-}
-a:hover {
-    text-decoration: underline;
 }
